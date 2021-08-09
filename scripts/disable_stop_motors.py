@@ -16,6 +16,7 @@ async def main():
     motor = moteusMotor()
     await motor.clear_faults()
 
+    '''
     motor.state = await motor.actuator.set_position(
         position = math.nan,
         velocity = 0.0,
@@ -25,7 +26,10 @@ async def main():
         watchdog_timeout = math.nan,
         query = True)
     print(motor.state.values[moteus.Register.ABS_POSITION])
-    #print("disable termination script finished")
+    '''
+    #print(await motor.get_aux_enc())
+
+    print("disable termination script finished")
 
 
 

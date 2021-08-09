@@ -108,8 +108,13 @@ class moteusMotor:
             query = True)
 
 
-    '''
     async def get_aux_enc(self):
         # return the auxiliary encoder readings
-        self.state = # TODO: figure out how to get aux enc reading
-    '''
+        self.state = await self.actuator.set_position(
+            position = math.nan,
+            velocity = 0.0,
+            maximum_torque = 0.0,
+            stop_position = math.nan,
+            feedforward_torque = 0.0,
+            query = True)
+        return self.state.values[moteus.Register.ABS_POSITION]
