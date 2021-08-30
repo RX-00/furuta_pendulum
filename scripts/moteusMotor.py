@@ -11,6 +11,7 @@ import moteus
 import time
 import argparse
 import sys
+import enum
 import multiplex as mp
 
 '''
@@ -25,14 +26,13 @@ furuta pendulum. No need for sending multiple commands in one transport
 cycle (since there's only one moteus ctrlr).
 '''
 
-
 class QueryResolutionABS:
     mode = mp.INT8
     position = mp.F32
     velocity = mp.F32
     torque = mp.F32
-    q_current = mp.IGNORE
-    d_current = mp.IGNORE
+    q_current = mp.F32
+    d_current = mp.F32
     abs_position = mp.F32
     rezero_state = mp.IGNORE
     voltage = mp.INT8
@@ -118,3 +118,28 @@ class moteusMotor:
             feedforward_torque = 0.0,
             query = True)
         return self.state.values[moteus.Register.ABS_POSITION]
+
+
+
+#async def main():
+#    print("disabling moteus motor...")
+#    motor = moteusMotor()
+#    await motor.clear_faults()
+
+#    motor.state = await motor.actuator.set_position(
+#        position = math.nan,
+#        velocity = 0.0,
+#        maximum_torque = 0.0,
+#        stop_position = math.nan,
+#        feedforward_torque = -0.01,
+#        watchdog_timeout = math.nan,
+#        query = True)
+#    #print(motor.state.values[moteus.Register.ABS_POSITION])
+#    print(await motor.get_aux_enc())
+
+#    print("disable termination script finished")
+
+
+
+#if __name__ == '__main__':
+#    asyncio.run(main())

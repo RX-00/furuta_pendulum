@@ -4,7 +4,8 @@
 # from max pos to min pos in an oscillating
 # sequence of sinusoidal varying small velocity
 
-from moteusMotor import moteusMotor
+from moteusMotor import *
+import multiplex as mp
 import asyncio
 import math
 import moteus
