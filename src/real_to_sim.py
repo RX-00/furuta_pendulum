@@ -16,13 +16,14 @@ NOTE: built from ./cartpole_sim.py and
 import numpy as np
 import argparse
 from copy import copy
-from moteusMotor import *
-import multiplex as mp
 import asyncio
 import math
 import moteus
 import numpy as np
 import time
+
+from moteus_src.moteusMotor import (QueryResolutionABS, moteusMotor)
+from ctrlrs.energy_shaping_lqr import *
 
 from pydrake.all import (SignalLogger, wrap_to, VectorSystem, LeafSystem,
                          Linearize, BasicVector)
@@ -40,16 +41,46 @@ from pydrake.systems.planar_scenegraph_visualizer import (
 
 '''
 TODO:
+[ ] Write up and convert real world furuta readings into cartpole equivalents
+        [x, theta, xdot, thetadot]_cartpole = [motor_pos, aux_enc, motor_vel, aux_vel]_furuta
 [ ] Write up a passive cartpole simulator
 [ ] Test if asyncio works with drake during moteus function calls
 '''
 
-
+# drake dynamic system that takes the furuta pendulum's sensor
+# readings and translates them into the respective values and
+# variables for cartpole
+# responsible for:
+#     * sending control signal to real furuta pendulum's moteus
+#     * converting furuta pend's moteus readings to cartpole val
+#     * taking input of drake ctrlr and giving it as torque cmds to moteus
+#     * sending output state of cartpole to simulator plant
 class FurutaPendulumToCartpole(LeafSystem):
 
     def __init__(self):
         LeafSystem.__init__(self)
+        # TODO: VectorInput for control signal (1)
+        #       VectorOutput for cartpole state (4)
 
+        self.furuta = moteusMotor()
+        self.cartpole_x = ()
+        self.cartpole_xdot = ()
+        self.cartpole_theta = ()
+        self.cartpole_thetadot = ()
+
+    def CalcVecOutput(self):
+        # NOTE: get control signal output, move moteus
+        self.furuta.actuate('''u''')
+
+
+# function to test out FurutaPendulumToCartpole's moteus member
+async def main_furuta_read():
+    test = FurutaPendulumToCartpole()
+    await test.furuta.set_state_vector()
+    result = await test.furuta.get_aux_enc()
+    while True:
+        await test.furuta.set_state_vector()
+        print(test.furuta.state_vector[1])
 
 
 
@@ -73,7 +104,7 @@ def arg_parse():
 
 
 #async def main():
-def main():
+async def main():
     args = arg_parse()
 
     sdf_path = FindResourceOrThrow(
@@ -166,4 +197,4 @@ def main():
 
 if __name__ == "__main__":
     #asyncio.run(main())
-    main()
+    asyncio.run(main_furuta_read())

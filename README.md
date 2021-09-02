@@ -10,3 +10,5 @@
     - d rezero 0
 - 0 encoder position for pendulum is upright, with +-0.5 being downward
     - in sys model it's np.pi is upright
+- needed to do 'sudo chmod 666 /dev/ttyACM0' to not need sudo for moteus
+  so that pydrake and moteus can run in same script
