@@ -41,12 +41,14 @@ from pydrake.systems.planar_scenegraph_visualizer import (
 
 '''
 TODO:
-[x] Write up and convert real world furuta readings into cartpole equivalents
+[ ] Write up a passive cartpole sys
+[ ] Write up FurutaPendulumToCartpole to overwrite the passive cartpole sys state vector
+[ ] Write up and convert real world furuta readings into cartpole equivalents
         [x, theta, xdot, thetadot]_cartpole = [motor_pos, aux_enc, motor_vel, aux_vel]_furuta
-[ ] Write up a passive cartpole simulator
-[ ] Test if asyncio works with drake during moteus function calls
+[x] Test if asyncio works with drake during moteus function calls
 '''
 
+# -----------------------------------------------------------------------------------
 # drake dynamic system that takes the furuta pendulum's sensor
 # readings and translates them into the respective values and
 # variables for cartpole
@@ -83,7 +85,7 @@ class FurutaPendulumToCartpole(LeafSystem):
 
 
 # function to test out FurutaPendulumToCartpole's moteus member
-async def main_furuta_read():
+async def furuta_readings_test():
     test = FurutaPendulumToCartpole()
     await test.init_state_vector()
     while True:
@@ -95,6 +97,9 @@ async def main_furuta_read():
         print("esti vel: ", test.furuta.calc_enc_vel(test.furuta.state_vector[0]))
 
 
+
+
+# MAIN LOOP FUNCTIONS BELOW ---------------------------------------------------------
 
 def arg_parse():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -114,9 +119,25 @@ def arg_parse():
     return args
 
 
+# main loop to test out the simulation cartpole reading data from the
+# real world system. Expected behavior:
+# -> if you move the real-pendulum up then the sim-pendulum moves up in real-time
+# -> if you move the real-base then the sim-cart moves
+async def main_real_to_sim_passive():
+    args = arg_parse()
+    sdf_path = FindResourceOrThrow(
+        "drake/examples/multibody/cart_pole/cart_pole.sdf")
 
-#async def main():
-async def main():
+    builder = DiagramBuilder()
+
+
+
+
+
+
+# Original EnergyShapingLQR Controller in a pure simulation space
+# Kept here as a point of reference and for testing purposes
+async def main_sim():
     args = arg_parse()
 
     sdf_path = FindResourceOrThrow(
@@ -208,5 +229,6 @@ async def main():
 
 
 if __name__ == "__main__":
-    #asyncio.run(main())
-    asyncio.run(main_furuta_read())
+    asyncio.run(main_real_to_sim_passive())
+    #asyncio.run(main_sim())
+    #asyncio.run(furuta_readings_test())
