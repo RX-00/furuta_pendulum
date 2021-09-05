@@ -70,8 +70,17 @@ class moteusMotor:
         # [motor pos, pend pos, motor vel, pend vel]
         self.state_vector = np.array([])
         self.state = None
+        # variables for track_loop
+        self.kRateHz = 1000 # 1kHz
+        self.kPeriodS = 1.0 / self.kRateHz
+        self.kp = 10.0
+        self.ki = 90.0
+        self.dt = self.kPeriodS
+        self.vel_est = 0
+        self.pos_est = 0
+        self.vel_integrator = 0
 
-    async def set_state_vector(self):
+    async def update_state_vector(self):
         self.state = await self.actuator.query()
         self.state_vector = np.array([
             self.state.values[moteus.Register.POSITION],
@@ -89,41 +98,21 @@ class moteusMotor:
         self.state = await self.actuator.set_stop()
         return self.state
 
-
     async def clear_faults(self):
         print("moteus init")
         # clearing any faults
         await self.stop()
 
-
-    async def get_pos(self):
-        self.state = await self.actuator.query()
-        return self.state.values[moteus.Register.POSITION]
-
-
-    async def get_vel(self):
-        self.state = await self.actuator.query()
-        return self.state.values[moteus.Register.VELOCITY]
-
-
-    async def get_aux_enc_raw(self):
-        # return the auxiliary encoder readings
-        self.state = await self.actuator.query()
-        return self.state.values[moteus.Register.ABS_POSITION]
-
-    async def get_aux_enc_filt(self):
-        pass
-
-
+    # fxn to calc encoder velocity
+    # based on tracking loop to filter
+    # position measurements to calculate
+    # velocity
     def calc_enc_vel(self, pos):
-
-        pass
-
-    async def get_aux_vel(self):
-        pos = self.get_aux_enc()
-        self.calc_enc_vel(pos)
-        # TODO: read Josh's blog about velocity calculations
-
+        self.pos_est += self.vel_est * self.dt
+        pos_err = pos - self.pos_est
+        self.vel_integrator += pos_err * self.ki * self.dt # should probably use this
+        self.vel_est = pos_err * self.kp + self.vel_integrator
+        return self.vel_integrator
 
     async def move_torque(self, max_torque, ffd_torque=-0.01):
         self.state = await self.actuator.set_position(
@@ -131,9 +120,11 @@ class moteusMotor:
             maximum_torque = max_torque,
             feedforward_torque = ffd_torque,
             query = True)
-        # TODO: return [x, theta, xdot, thetadot] for furuta pendulum here
-        # TODO: also have calc_env_vel here
-
+        self.state_vector = np.array([
+            self.state.values[moteus.Register.POSITION],
+            self.state.values[moteus.Register.ABS_POSITION],
+            self.state.values[moteus.Register.VELOCITY],
+            self.calc_enc_vel(self.state.values[moteus.Register.ABS_POSITION])])
 
     async def move_to_pos(self, pos, vel=0.2, max_torque=0.2, ffd_torque=-0.01):
         '''
@@ -155,7 +146,7 @@ class moteusMotor:
 
 
 
-
+'''
 async def main():
     print("disabling moteus motor...")
     motor = moteusMotor()
@@ -172,7 +163,7 @@ async def main():
     print(await motor.get_aux_enc())
 
     print("disable termination script finished")
-
+'''
 
 
 #if __name__ == '__main__':

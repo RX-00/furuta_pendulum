@@ -63,12 +63,21 @@ class FurutaPendulumToCartpole(LeafSystem):
         #       VectorOutput for cartpole state (4)
 
         self.furuta = moteusMotor()
+        # NOTE: these values need to be transformed
+        #       from furuta pendulum to cartpole
+        # e.g. cartpole x & xdot is linear while
+        #      furuta x & xdot is rotational
         self.cartpole_x = 0
         self.cartpole_xdot = 0
         self.cartpole_theta = 0
         self.cartpole_thetadot = 0
 
+    async def init_state_vector(self):
+        self.furuta.update_state_vector()
+
     async def CalcVecOutput(self):
+        # NOTE: should always be calling update
+        #       to get aux_enc_vel
         # NOTE: get control signal output, move moteus
         self.furuta.actuate('''u''')
 
@@ -76,11 +85,11 @@ class FurutaPendulumToCartpole(LeafSystem):
 # function to test out FurutaPendulumToCartpole's moteus member
 async def main_furuta_read():
     test = FurutaPendulumToCartpole()
-    await test.furuta.set_state_vector()
-    result = await test.furuta.get_aux_enc()
+    await test.init_state_vector()
     while True:
-        await test.furuta.set_state_vector()
-        print(test.furuta.state_vector[1])
+        await test.furuta.update_state_vector()
+        #print("enc pos: ", test.furuta.state_vector[1])
+        print("enc vel: ", test.furuta.state_vector[3])
 
 
 
