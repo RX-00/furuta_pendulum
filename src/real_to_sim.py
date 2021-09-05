@@ -41,7 +41,7 @@ from pydrake.systems.planar_scenegraph_visualizer import (
 
 '''
 TODO:
-[ ] Write up and convert real world furuta readings into cartpole equivalents
+[x] Write up and convert real world furuta readings into cartpole equivalents
         [x, theta, xdot, thetadot]_cartpole = [motor_pos, aux_enc, motor_vel, aux_vel]_furuta
 [ ] Write up a passive cartpole simulator
 [ ] Test if asyncio works with drake during moteus function calls
@@ -68,8 +68,8 @@ class FurutaPendulumToCartpole(LeafSystem):
         # e.g. cartpole x & xdot is linear while
         #      furuta x & xdot is rotational
         self.cartpole_x = 0
-        self.cartpole_xdot = 0
         self.cartpole_theta = 0
+        self.cartpole_xdot = 0
         self.cartpole_thetadot = 0
 
     async def init_state_vector(self):
@@ -89,7 +89,10 @@ async def main_furuta_read():
     while True:
         await test.furuta.update_state_vector()
         #print("enc pos: ", test.furuta.state_vector[1])
-        print("enc vel: ", test.furuta.state_vector[3])
+        #print("enc vel: ", test.furuta.state_vector[3])
+        # NOTE: test to determine if the moteusMotor.calc_enc_vel() is working
+        print("real vel: ", test.furuta.state_vector[2])
+        print("esti vel: ", test.furuta.calc_enc_vel(test.furuta.state_vector[0]))
 
 
 

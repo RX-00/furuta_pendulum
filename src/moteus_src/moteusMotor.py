@@ -27,8 +27,8 @@ furuta pendulum. No need for sending multiple commands in one transport
 cycle (since there's only one moteus ctrlr).
 
 TODO:
-[ ] return [x, theta, xdot, thetadot] for furuta pendulum
-    [ ] figure out velocity calc for thetadot
+[x] return [x, theta, xdot, thetadot] for furuta pendulum
+    [x] figure out velocity calc for thetadot
 
 '''
 
@@ -73,8 +73,8 @@ class moteusMotor:
         # variables for track_loop
         self.kRateHz = 1000 # 1kHz
         self.kPeriodS = 1.0 / self.kRateHz
-        self.kp = 10.0
-        self.ki = 90.0
+        self.kp = 5.0
+        self.ki = 25.0
         self.dt = self.kPeriodS
         self.vel_est = 0
         self.pos_est = 0
