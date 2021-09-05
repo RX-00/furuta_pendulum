@@ -63,12 +63,12 @@ class FurutaPendulumToCartpole(LeafSystem):
         #       VectorOutput for cartpole state (4)
 
         self.furuta = moteusMotor()
-        self.cartpole_x = ()
-        self.cartpole_xdot = ()
-        self.cartpole_theta = ()
-        self.cartpole_thetadot = ()
+        self.cartpole_x = 0
+        self.cartpole_xdot = 0
+        self.cartpole_theta = 0
+        self.cartpole_thetadot = 0
 
-    def CalcVecOutput(self):
+    async def CalcVecOutput(self):
         # NOTE: get control signal output, move moteus
         self.furuta.actuate('''u''')
 

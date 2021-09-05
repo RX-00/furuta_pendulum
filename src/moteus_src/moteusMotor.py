@@ -59,7 +59,10 @@ class QueryResolutionABS:
 class moteusMotor:
 
     def __init__(self):
-        qr = QueryResolutionABS()
+        #qr = QueryResolutionABS()
+        # NOTE: proper way to set qr
+        qr = moteus.QueryResolution()
+        qr.abs_position = mp.F32
         self.actuator = moteus.Controller(id=1, query_resolution=qr)
         self.state = None
         self.input_u = 0
@@ -93,12 +96,6 @@ class moteusMotor:
         await self.stop()
 
 
-    async def get_aux_enc(self):
-        # return the auxiliary encoder readings
-        self.state = await self.actuator.query()
-        return self.state.values[moteus.Register.ABS_POSITION]
-
-
     async def get_pos(self):
         self.state = await self.actuator.query()
         return self.state.values[moteus.Register.POSITION]
@@ -109,12 +106,22 @@ class moteusMotor:
         return self.state.values[moteus.Register.VELOCITY]
 
 
+    async def get_aux_enc_raw(self):
+        # return the auxiliary encoder readings
+        self.state = await self.actuator.query()
+        return self.state.values[moteus.Register.ABS_POSITION]
+
+    async def get_aux_enc_filt(self):
+        pass
+
+
     def calc_enc_vel(self, pos):
+
         pass
 
     async def get_aux_vel(self):
         pos = self.get_aux_enc()
-        self.calc_enc_vel()
+        self.calc_enc_vel(pos)
         # TODO: read Josh's blog about velocity calculations
 
 
@@ -125,6 +132,7 @@ class moteusMotor:
             feedforward_torque = ffd_torque,
             query = True)
         # TODO: return [x, theta, xdot, thetadot] for furuta pendulum here
+        # TODO: also have calc_env_vel here
 
 
     async def move_to_pos(self, pos, vel=0.2, max_torque=0.2, ffd_torque=-0.01):
