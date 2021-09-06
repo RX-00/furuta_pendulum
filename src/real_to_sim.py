@@ -129,6 +129,8 @@ async def main_real_to_sim_passive():
         "drake/examples/multibody/cart_pole/cart_pole.sdf")
 
     builder = DiagramBuilder()
+    cart_pole = builder.AddSystem(MultibodyPlant(time_step=args.time_step))
+    scene_graph = builder.AddSystem(SceneGraph())
 
 
 
