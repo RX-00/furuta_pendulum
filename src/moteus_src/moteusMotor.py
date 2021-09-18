@@ -26,6 +26,8 @@ Will use set_*() functions since there is only one moteus motor in the
 furuta pendulum. No need for sending multiple commands in one transport
 cycle (since there's only one moteus ctrlr).
 
+[x, theta, xdot, thetadot]
+
 TODO:
 [x] return [x, theta, xdot, thetadot] for furuta pendulum
     [x] figure out velocity calc for thetadot
@@ -126,6 +128,21 @@ class moteusMotor:
             self.state.values[moteus.Register.VELOCITY],
             self.calc_enc_vel(self.state.values[moteus.Register.ABS_POSITION])])
 
+    async def move_to_pos_w_vel(self, pos, vel, max_torque=0.2, ffd_torque=-0.01):
+        self.state = await self.actuator.set_position(
+            position = pos, # this is where the position tries to hold itself in
+            velocity = vel,
+            maximum_torque = max_torque,
+            stop_position = math.nan,
+            feedforward_torque = ffd_torque,
+            watchdog_timeout = math.nan,
+            query = True)
+        self.state_vector = np.array([
+            self.state.values[moteus.Register.POSITION],
+            self.state.values[moteus.Register.ABS_POSITION],
+            self.state.values[moteus.Register.VELOCITY],
+            self.calc_enc_vel(self.state.values[moteus.Register.ABS_POSITION])])
+
     async def move_to_pos(self, pos, vel=0.2, max_torque=0.2, ffd_torque=-0.01):
         '''
         NOTE: about stop_position in set/make_position()
@@ -143,6 +160,11 @@ class moteusMotor:
             feedforward_torque = ffd_torque,
             watchdog_timeout = math.nan,
             query = True)
+        self.state_vector = np.array([
+            self.state.values[moteus.Register.POSITION],
+            self.state.values[moteus.Register.ABS_POSITION],
+            self.state.values[moteus.Register.VELOCITY],
+            self.calc_enc_vel(self.state.values[moteus.Register.ABS_POSITION])])
 
 
 

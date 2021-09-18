@@ -41,32 +41,27 @@ from pydrake.systems.planar_scenegraph_visualizer import (
 
 '''
 TODO:
-[ ] Write up a passive cartpole sys
-[ ] Write up FurutaPendulumToCartpole to overwrite the passive cartpole sys state vector
-[ ] Write up and convert real world furuta readings into cartpole equivalents
-        [x, theta, xdot, thetadot]_cartpole = [motor_pos, aux_enc, motor_vel, aux_vel]_furuta
+[x] Write up a passive cartpole sys
+[x] Change cart_pole.sdf in drake to reflect furuta pendulum's values
+[ ] Write up and convert sim cartpole state outputs into furuta pendulum cmds
+        [x, theta, xdot, thetadot]_cartpole => [motor_pos, motor_vel]_furuta
 [x] Test if asyncio works with drake during moteus function calls
 '''
 
 # -----------------------------------------------------------------------------------
-# drake dynamic system that takes the furuta pendulum's sensor
-# readings and translates them into the respective values and
-# variables for cartpole
-# responsible for:
-#     * sending control signal to real furuta pendulum's moteus
-#     * converting furuta pend's moteus readings to cartpole val
-#     * taking input of drake ctrlr and giving it as torque cmds to moteus
-#     * sending output state of cartpole to simulator plant
-class FurutaPendulumToCartpole(LeafSystem):
+# Function to test taking in the cart_pole MbP system's state_vector and converts
+# the cart's position and velocity [x, xdot] data to the irl Furuta's moteus
+class FurutaPendulumRealTest(VectorSystem):
 
-    def __init__(self):
-        LeafSystem.__init__(self)
-        # TODO: VectorInput for control signal (1)
-        #       VectorOutput for cartpole state (4)
+    def __init__(self, cart_pole, cart_pole_context):
+        VectorSystem.__init__(self, 4, 1)
+        # VectorInput for cartpole_state
+        self.cart_pole = cart_pole
+        self.cart_pole_context = cart_pole.CreateDefaultContext()
 
         self.furuta = moteusMotor()
         # NOTE: these values need to be transformed
-        #       from furuta pendulum to cartpole
+        #       from cartpole to furuta
         # e.g. cartpole x & xdot is linear while
         #      furuta x & xdot is rotational
         self.cartpole_x = 0
@@ -74,25 +69,25 @@ class FurutaPendulumToCartpole(LeafSystem):
         self.cartpole_xdot = 0
         self.cartpole_thetadot = 0
 
+    # NOTE: always calls this after creating an instance of this class
     async def init_state_vector(self):
         self.furuta.update_state_vector()
 
-    async def CalcVecOutput(self):
-        # NOTE: should always be calling update
-        #       to get aux_enc_vel
-        # NOTE: get control signal output, move moteus
-        self.furuta.actuate('''u''')
+    async def DoCalcVecOutput(self, context, cart_pole_state, unused, output):
+        # NOTE: get sim state vector and after conversion, move moteus
+        print(cart_pole_state)
 
 
-# function to test out FurutaPendulumToCartpole's moteus member
+# function to test out 's moteus member
 async def furuta_readings_test():
-    test = FurutaPendulumToCartpole()
+    test = FurutaPendulumRealTest()
     await test.init_state_vector()
     while True:
         await test.furuta.update_state_vector()
         #print("enc pos: ", test.furuta.state_vector[1])
         #print("enc vel: ", test.furuta.state_vector[3])
-        # NOTE: test to determine if the moteusMotor.calc_enc_vel() is working
+
+        # NOTE: test to determine if the moteusMotor.calc_enc_vel() is working with moteus' calc velocity for the base vs. our estimator (given the moteus' position encoder reading)
         print("real vel: ", test.furuta.state_vector[2])
         print("esti vel: ", test.furuta.calc_enc_vel(test.furuta.state_vector[0]))
 
@@ -117,60 +112,6 @@ def arg_parse():
              "If 0, the plant is modeled as a continuous system.")
     args = parser.parse_args()
     return args
-
-
-# main loop to test out the simulation cartpole reading data from the
-# real world system. Expected behavior:
-# -> if you move the real-pendulum up then the sim-pendulum moves up in real-time
-# -> if you move the real-base then the sim-cart moves
-async def main_real_to_sim_no_ctrlr():
-    args = arg_parse()
-    sdf_path = FindResourceOrThrow(
-        "drake/examples/multibody/cart_pole/cart_pole.sdf")
-
-    builder = DiagramBuilder()
-    cart_pole = builder.AddSystem(MultibodyPlant(time_step=args.time_step))
-    scene_graph = builder.AddSystem(SceneGraph())
-    cart_pole.RegisterAsSourceForSceneGraph(scene_graph)
-    Parser(plant=cart_pole).AddModelFromFile(sdf_path)
-
-    cart_pole.Finalize()
-    assert cart_pole.geometry_source_is_registered()
-
-    # wire up scene_graph and cart_pole geometry
-    builder.Connect(
-        scene_graph.get_query_output_port(),
-        cart_pole.get_geometry_query_input_port())
-    builder.Connect(
-        cart_pole.get_geometry_poses_output_port(),
-        scene_graph.get_source_pose_port(cart_pole.get_source_id()))
-
-    # hookup //tools:drake_visualizer
-    DrakeVisualizer.AddToBuilder(builder=builder, scene_graph=scene_graph)
-
-    # NOTE: get cart_pole context here (not for passive)
-
-
-    # done defining & hooking up the system
-    diagram = builder.Build()
-    diagram_context = diagram.CreateDefaultContext()
-    cart_pole_context_passive = diagram.GetMutableSubsystemContext(cart_pole,
-                                                                   diagram_context)
-
-    # fix cart_pole actuation port to be nothing
-    cart_pole.get_actuation_input_port().FixValue(cart_pole_context_passive, 0)
-
-    simulator = Simulator(diagram, diagram_context)
-    simulator.set_publish_every_time_step(False) # speed up sim
-    simulator.set_target_realtime_rate(args.target_realtime_rate)
-
-    # sim context, reset after initial time & state
-    sim_context = simulator.get_mutable_context()
-    sim_context.SetTime(0.)
-    sim_context.SetContinuousState([0.5, 0.2, 0, 0.1])
-    # run sim until simulator.AdvanceTo(n) seconds
-    simulator.Initialize()
-    simulator.AdvanceTo(args.simulation_time)
 
 
 
@@ -268,6 +209,5 @@ async def main_sim():
 
 
 if __name__ == "__main__":
-    asyncio.run(main_real_to_sim_no_ctrlr())
     #asyncio.run(main_sim())
-    #asyncio.run(furuta_readings_test())
+    asyncio.run(furuta_readings_test())
